@@ -1,0 +1,306 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+#################################################
+# Skript zum Auslesen des                       #
+# Status verschiedener Serverdienste            #
+# --------------------------------------------- #
+# Erstellt von Johannes Paul, 09.04.2014        #
+# Bearbeitet am 27.12.2016                      #
+# --------------------------------------------- #
+# Syntax: serverstatus [vpn] [tel]              #
+# Parameter (VPN-Server):                       #
+#    vpn - Detailausgabe VPN-Server             #
+#    tel - Telnet statt Logdatei                #
+#################################################
+
+# Import
+import sys
+import time
+import curses
+import subprocess
+import copy
+import telnetlib
+from collections import OrderedDict
+
+def main(screen):
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+    curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    curses.init_pair(4, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+    curses.init_pair(5, curses.COLOR_BLUE, curses.COLOR_BLACK)
+    
+    screen.nodelay(1)
+    
+    if 'vpn' in sys.argv:
+        vpn = True
+        vpnstatus = 'Fehler in der Statusüberprüfung!!!'
+    else:
+        vpn = False
+    
+    if 'tel' in sys.argv:
+        tel = True
+    else:
+        tel = False
+    
+    if 'short' in sys.argv:
+        short = True
+    else:
+        short = False
+   
+
+    # Dauerschleife zur Ueberprüfung und Ausgabe
+    while True:
+        # Exit with <q>
+        c = screen.getch()
+        if c == ord('q'):break
+        screen.clear()
+        screen.move(0,0)
+        screen.addstr("Zum Beenden <q> drücken!\n", curses.color_pair(1) | curses.A_BOLD)
+    
+        ### ---- CPU --- ###
+#        process = subprocess.Popen("ps -eao 'pcpu' | awk '{a+=$1} END {print a}'", shell=True, stdout=subprocess.PIPE)
+#        cpu = process.stdout.read().rstrip()
+#        screen.addstr("\nCPU: %s %%" % bytes.decode(cpu), curses.A_BOLD)
+
+        ### ---- Statusübersicht ---- ####
+
+#        screen.addstr("\n\n----------------------------------------------------------------------------------------------------------\n")
+        # Insgesamt 106 Bindestriche => 53 + Zeichen/2 (aufgerundet)
+#        screen.addstr("%+61s" % 'Statusübersicht', curses.color_pair(5) | curses.A_BOLD)
+        screen.addstr("\n----------------------------------------------------------------------------------------------------------\n")
+        
+    #--- Systemfunktionen ---
+        s1items =[ 
+            ('rsyslog',          'System Logging (rsyslog)'),
+            ('cron',             'Cron Service'),
+            ('dhcpcd',           'DHCP Client Service'),
+            ('ntp',              'Internetzeit Service (ntp)'),
+#            ('saslauthd',        'SASL-Auth'),
+        ]
+        
+    #--- Fernwartung ---
+        s2items =[
+#            ('sshd',              'SSH-Server (openssh)'),
+            ('ssh',              'SSH-Server (openssh)'),
+            ('vncserver@:1',     'VNC-Server (tigervnc)'),
+        ]
+        
+    #--- Netzwerk-Infrastruktur, Routing ---
+        s3items =[
+            ('openvpn@server',   'VPN-Server (openvpn)'),
+            ('tor',              'Tor'),
+            ('polipo',           'Proxyserver (polipo)'),
+        ]
+        
+    #--- Kommunikation ---
+        s4items =[
+#            ('murmur',           'VOIP-Server (murmur)'),
+            ('mumble-server',    'VOIP-Server (mumble)'),
+            ('prosody',          'Jabber/XMPP-Server (prosody)'),
+            ('quasselcore',      'Quassel-Core'),
+            ('inspircd',         'IRC-Server (inspircd)'),
+            ('etherpad-lite',    'Etherpad-Lite'),
+        ]
+    #--- Web, Datenbank, Dateien ---
+        s5items =[
+#            ('httpd',            'Webserver (apache)'),
+            ('apache2',          'Webserver (apache)'),
+#            ('mariadb',           'MySQL-Server (mariadb)'),
+            ('mysql',           'MySQL-Server (mariadb)'),
+            ('postgresql@9.4-main',       'PostgreSQL-Server (postgresql)'),
+            ('vsftpd',           'FTP-Server (vsftpd)'),
+            ('smbd',             'Dateiserver (samba, smbd)'),
+        ]
+    #--- Email ---
+        s6items =[
+            ('postfix',          'Postfix-Mail-Server (postfix)'),
+            ('exim4',            'Exim-Mail-Server (exim4)'),
+#            ('fetchmail',        'Fetchmail (fetchmail)'),
+            ('dovecot',          'Imap-Server (dovecot)'),
+        ]
+    #--- Monitoring ---
+        s7items =[
+            ('icinga2',          'Icinga2-Monitoring'),
+        ]
+        
+        if short:
+            serveritems = s2items + s3items + s4items + s5items + s6items + s7items
+        else:
+            serveritems = s1items + s2items + s3items + s4items + s5items + s6items + s7items
+        
+        serverarray = OrderedDict(serveritems)
+    
+        servers = []
+    
+        # Define headers
+        headers = {
+            'sd':    'Serverdienst',
+            'stat':  'Status',
+            'since':  'Aktiv seit',
+        }
+
+        commandstr = 'systemctl status '
+        for service in list(serverarray.keys()):
+            commandstr += service + '.service '
+        process = subprocess.Popen(commandstr, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+        sysstatus = process.stdout.read()
+        servicestatuses = sysstatus.split(bytes.decode(b'\xe2\x97\x8f '))
+    
+        for servicestatus in servicestatuses:
+            if servicestatus:
+                statuslines = servicestatus.split('\n')
+                service = statuslines[0].split('.service')[0]
+                server = {}
+                server['sd'] = serverarray[service]
+                server['stat'] = 'Fehler !!!'
+                server['since']= '--'
+                
+                for line in statuslines:
+                    if ('Loaded' in line):
+                        if ('not-found' in line):
+                            server['stat'] = 'nicht installiert'
+                            break
+                    if ('Active' in line):
+                        if ('inactive' in line):
+                            server['stat'] = 'inaktiv'
+                        elif ('active (running)' in line):
+                            server['stat'] = 'aktiv'
+                            server['since']= line[line.find('since')+6:]
+                        elif ('failed' in line):
+                            server['stat'] = 'fehlgeschlagen'
+                            server['since']= line[line.find('since')+6:]
+                        if service == 'openvpn@server' and vpn:
+                            vpnstatus = line
+                            vpnserver = copy.copy(server)
+                        break
+                servers.append(server)
+    
+        # Output
+        fmt = "%(sd)-30s %(stat)-15s %(since)-15s"
+        screen.addstr(fmt % headers + '\n')
+        screen.addstr("----------------------------------------------------------------------------------------------------------\n")
+        outcount = 0
+        if not short:
+            screen.addstr("\n  --- Systemfunktionen ---", curses.color_pair(5) | curses.A_BOLD)
+        for s in servers:
+            if s['stat'] == 'aktiv':
+                screen.addstr("\n%-30s " % s['sd'])
+                screen.addstr("%-15s " % s['stat'], curses.color_pair(3) | curses.A_BOLD)
+            elif s['stat'] == 'inaktiv':
+                screen.addstr("\n%-30s " % s['sd'])
+                screen.addstr("%-15s " % s['stat'], curses.color_pair(4) | curses.A_BOLD)
+            elif s['stat'] == 'nicht installiert':
+                screen.addstr("\n%-30s " % s['sd'])
+                screen.addstr("%-15s " % s['stat'], curses.color_pair(1))
+            else:
+                screen.addstr("\n%-30s " % s['sd'])
+                screen.addstr("%-15s " % s['stat'], curses.color_pair(2) | curses.A_BOLD)
+            screen.addstr("%-15s" % s['since'])
+            if not short:
+                outcount += 1                
+                if outcount == 4:
+                    screen.addstr("\n\n  --- Fernwartung ---", curses.color_pair(5) | curses.A_BOLD)
+                elif outcount == 6:
+                    screen.addstr("\n\n  --- Netzwerk-Infrastruktur, Routing ---", curses.color_pair(5) | curses.A_BOLD)
+                elif outcount == 9:
+                    screen.addstr("\n\n  --- Kommunikation ---", curses.color_pair(5) | curses.A_BOLD)
+                elif outcount == 14:
+                    screen.addstr("\n\n  --- Web, Datenbank, Dateien ---", curses.color_pair(5) | curses.A_BOLD)
+                elif outcount == 19:
+                    screen.addstr("\n\n  --- Email ---", curses.color_pair(5) | curses.A_BOLD)
+                elif outcount == 22:
+                    screen.addstr("\n\n  --- Monitoring ---", curses.color_pair(5) | curses.A_BOLD)
+    
+    
+        ### ---- VPN-Server ---- ####
+    
+        if vpn:
+            # Path to logfile (format -> status-version 3)
+            STATUS = "/tmp/ramdisk/openvpn-status.log"
+
+            screen.addstr("\n\n")    
+#            screen.addstr("\n\n----------------------------------------------------------------------------------------------------------\n")
+            if tel:
+                screen.addstr("%+66s" % 'VPN-Server (Telnet-Abfrage)', curses.color_pair(5) | curses.A_BOLD)
+            else:
+                screen.addstr("%+63s" % 'VPN-Server (Logdatei)', curses.color_pair(5) | curses.A_BOLD)
+            screen.addstr("\n----------------------------------------------------------------------------------------------------------\n")
+    
+            if vpnserver['stat'] == 'aktiv':
+                hosts = []
+    
+                if tel:
+                    # Connect via Telnet to Openvpn Management Interface
+                    # Query status
+                    vpn = telnetlib.Telnet("127.0.0.1",5555)
+                    vpn.write(b"status 3 \r\n")
+                    data = bytes.decode(vpn.read_until(b"END",2))
+                    vpn.write(b"exit \r\n")
+                    vpn.close()
+                    stats = data.split("\r\n")
+                else:
+                    # Open logfile and read
+                    status_file = open(STATUS, 'r')
+                    stats = status_file.readlines()
+                    status_file.flush()
+    
+                # Define headers
+                headers2 = {
+                    'cn':    'Nutzername',
+                    'virt':  'VPN-Addresse',
+                    'real':  'Reale Addresse',
+                    'sent':  'Gesendet',
+                    'recv':  'Empfangen',
+                    'since': 'Verbunden seit'
+                }
+    
+                # Nice byte formatting
+                sizes = [
+                    (1<<50, 'PB'),
+                    (1<<40, 'TB'),
+                    (1<<30, 'GB'),
+                    (1<<20, 'MB'),
+                    (1<<10, 'KB'),
+                    (1,       'B')
+                ]
+    
+                def byte2str(size):
+                    for f, suf in sizes:
+                        if size >= f:
+                            break
+                    return "%.2f %s" % (size / float(f), suf)
+    
+                # Search for the right data
+                for line in stats:
+                    cols = line.split('\t')
+                    if len(cols) == 9 and line.startswith('CLIENT_LIST'):
+                        host  = {}
+                        host['cn']    = cols[1]
+                        host['real']  = cols[2].split(':')[0]
+                        host['virt']  = cols[3]
+                        host['recv']  = byte2str(int(cols[4]))
+                        host['sent']  = byte2str(int(cols[5]))
+                        host['since'] = cols[6].strip()
+                        hosts.append(host)
+    
+                # Output
+                fmt = "%(cn)-14s %(virt)-19s %(real)-16s %(sent)11s %(recv)13s %(since)28s"
+                screen.addstr(fmt % headers2 + '\n')
+                screen.addstr("----------------------------------------------------------------------------------------------------------\n")
+                screen.addstr("\n".join([fmt % h for h in hosts]), curses.color_pair(4) | curses.A_BOLD)
+    
+    
+            elif vpnserver['stat'] == 'inaktiv':
+                screen.addstr(vpnstatus + '\n', curses.color_pair(2))
+            else:
+                screen.addstr(vpnstatus + '\n', curses.color_pair(4))
+    
+        screen.refresh()
+        # Wait a moment
+        time.sleep(1)
+    curses.endwin()
+
+curses.wrapper(main)
+
