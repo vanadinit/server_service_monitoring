@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#logdatei='/home/jolami/openvpntest2'
+logdatei='/tmp/ramdisk/openvpn-status.log'
+emailadr='root@localhost'
+
+clients=$(awk '/^CLIENT_LIST/ {print $2 " " $3}' $logdatei)
+clientips=$(awk '/^CLIENT_LIST/ {print $3}' $logdatei | cut -d '.' -f1-3)
+
+foreign=false
+for clientip in $clientips; do
+	if [ $clientip != "192.168.0" ]; then
+		foreign=true
+	fi
+done
+
+if $foreign; then
+	[[ -f "/tmp/ramdisk/openvpnforeign.lock" ]] || mail -s "Fremder VPN-Login" $emailadr <<< $clients
+	touch /tmp/ramdisk/openvpnforeign.lock
+else
+	[[ -f "/tmp/ramdisk/openvpnforeign.lock" ]] && rm /tmp/ramdisk/openvpnforeign.lock
+fi
+
+exit 0
