@@ -103,7 +103,7 @@ def main(screen):
             ('inspircd',         'IRC-Server (inspircd)'),
             ('etherpad-lite',    'Etherpad-Lite'),
         ]
-    #--- Web, Datenbank, Dateien ---
+    #--- Web, Datenbank, Dateien, Musik ---
         s5items =[
 #            ('httpd',            'Webserver (apache)'),
             ('apache2',          'Webserver (apache)'),
@@ -112,6 +112,8 @@ def main(screen):
             ('postgresql@9.4-main',       'PostgreSQL-Server (postgresql)'),
             ('vsftpd',           'FTP-Server (vsftpd)'),
             ('smbd',             'Dateiserver (samba, smbd)'),
+            ('icecast2',         'Streaming Server (icecast2)'),
+            ('mpd',              'Musik Player Daemon'),
         ]
     #--- Email ---
         s6items =[
@@ -200,17 +202,17 @@ def main(screen):
             screen.addstr("%-15s" % s['since'])
             if not short:
                 outcount += 1                
-                if outcount == 4:
+                if outcount == len(s1items):
                     screen.addstr("\n\n  --- Fernwartung ---", curses.color_pair(5) | curses.A_BOLD)
-                elif outcount == 6:
+                elif outcount == len(s1items)+len(s2items):
                     screen.addstr("\n\n  --- Netzwerk-Infrastruktur, Routing ---", curses.color_pair(5) | curses.A_BOLD)
-                elif outcount == 9:
+                elif outcount == len(s1items)+len(s2items)+len(s3items):
                     screen.addstr("\n\n  --- Kommunikation ---", curses.color_pair(5) | curses.A_BOLD)
-                elif outcount == 14:
+                elif outcount == len(s1items)+len(s2items)+len(s3items)+len(s4items):
                     screen.addstr("\n\n  --- Web, Datenbank, Dateien ---", curses.color_pair(5) | curses.A_BOLD)
-                elif outcount == 19:
+                elif outcount == len(s1items)+len(s2items)+len(s3items)+len(s4items)+len(s5items):
                     screen.addstr("\n\n  --- Email ---", curses.color_pair(5) | curses.A_BOLD)
-                elif outcount == 22:
+                elif outcount == len(s1items)+len(s2items)+len(s3items)+len(s4items)+len(s5items)+len(s6items):
                     screen.addstr("\n\n  --- Monitoring ---", curses.color_pair(5) | curses.A_BOLD)
     
     
