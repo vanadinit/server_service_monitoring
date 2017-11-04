@@ -114,6 +114,7 @@ def main(screen):
             ('smbd',             'Dateiserver (samba, smbd)'),
             ('icecast2',         'Streaming Server (icecast2)'),
             ('mpd',              'Musik Player Daemon'),
+            ('logitechmediaserver',       'Squeezebox-Server'),
         ]
     #--- Email ---
         s6items =[
