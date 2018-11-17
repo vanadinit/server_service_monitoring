@@ -79,7 +79,7 @@ def define_services():
         Service(name='vsftpd',                  description='FTP-Server (vsftpd)'),
         Service(name='smbd',                    description='Dateiserver (samba, smbd)'),
         Service(name='icecast2',                description='Streaming Server (icecast2)'),
-        Service(name='mpd',                     description='Musik Player Daemon'),
+        #Service(name='mpd',                     description='Musik Player Daemon'),
         Service(name='logitechmediaserver',     description='Squeezebox-Server'),
     ]
     services['mail'] = [
@@ -115,6 +115,62 @@ def initialize_colors():
     curses.init_pair(4, curses.COLOR_YELLOW, curses.COLOR_BLACK)
     curses.init_pair(5, curses.COLOR_BLUE, curses.COLOR_BLACK)
 
+def curses_output(screen, services):
+    # Define headers
+    headers = {
+        'sd': 'Serverdienst',
+        'stat': 'Status',
+        'since': 'Aktiv seit',
+    }
+
+    if 'short' in sys.argv:
+        short = True
+    else:
+        short = False
+
+    screen.clear()
+    screen.move(0, 0)
+    screen.addstr("Zum Beenden <q> drücken!\n", curses.color_pair(1) | curses.A_BOLD)
+
+    ### ---- CPU --- ###
+    #        process = subprocess.Popen("ps -eao 'pcpu' | awk '{a+=$1} END {print a}'", shell=True, stdout=subprocess.PIPE)
+    #        cpu = process.stdout.read().rstrip()
+    #        screen.addstr("\nCPU: %s %%" % bytes.decode(cpu), curses.A_BOLD)
+
+    ### ---- Statusübersicht ---- ####
+
+    #        screen.addstr("\n\n----------------------------------------------------------------------------------------------------------\n")
+    # Insgesamt 106 Bindestriche => 53 + Zeichen/2 (aufgerundet)
+    #        screen.addstr("%+61s" % 'Statusübersicht', curses.color_pair(5) | curses.A_BOLD)
+    screen.addstr(
+        "\n----------------------------------------------------------------------------------------------------------\n")
+
+    fmt = "%(sd)-30s %(stat)-15s %(since)-15s"
+    screen.addstr(fmt % headers + '\n')
+    screen.addstr(
+        "----------------------------------------------------------------------------------------------------------\n")
+    for stype in services:
+        if short:
+            if stype == 'sys':
+                continue
+        else:
+            screen.addstr("\n  --- {} ---".format(services[stype][0]), curses.color_pair(5) | curses.A_BOLD)
+        for s in services[stype][1:]:
+            if s.status == 'aktiv':
+                screen.addstr("\n%-30s " % s.description)
+                screen.addstr("%-15s " % s.status, curses.color_pair(3) | curses.A_BOLD)
+            elif s.status == 'inaktiv':
+                screen.addstr("\n%-30s " % s.description)
+                screen.addstr("%-15s " % s.status, curses.color_pair(4) | curses.A_BOLD)
+            elif s.status == 'nicht installiert':
+                screen.addstr("\n%-30s " % s.description)
+                screen.addstr("%-15s " % s.status, curses.color_pair(1))
+            else:
+                screen.addstr("\n%-30s " % s.description)
+                screen.addstr("%-15s " % s.status, curses.color_pair(2) | curses.A_BOLD)
+            screen.addstr("%-15s" % s.since)
+        screen.addstr("\n")
+
 
 def main(screen):
     LOG = initialize_logger()
@@ -133,11 +189,6 @@ def main(screen):
     else:
         tel = False
 
-    if 'short' in sys.argv:
-        short = True
-    else:
-        short = False
-
     services = define_services()
 
     commandstr = 'systemctl status '
@@ -147,34 +198,11 @@ def main(screen):
             servicedict[service.name] = service
             commandstr += service.name + '.service '
 
-    # Define headers
-    headers = {
-        'sd': 'Serverdienst',
-        'stat': 'Status',
-        'since': 'Aktiv seit',
-    }
-
     # Dauerschleife zur Ueberprüfung und Ausgabe
     while True:
         # Exit with <q>
         c = screen.getch()
         if c == ord('q'): break
-        screen.clear()
-        screen.move(0, 0)
-        screen.addstr("Zum Beenden <q> drücken!\n", curses.color_pair(1) | curses.A_BOLD)
-
-        ### ---- CPU --- ###
-        #        process = subprocess.Popen("ps -eao 'pcpu' | awk '{a+=$1} END {print a}'", shell=True, stdout=subprocess.PIPE)
-        #        cpu = process.stdout.read().rstrip()
-        #        screen.addstr("\nCPU: %s %%" % bytes.decode(cpu), curses.A_BOLD)
-
-        ### ---- Statusübersicht ---- ####
-
-        #        screen.addstr("\n\n----------------------------------------------------------------------------------------------------------\n")
-        # Insgesamt 106 Bindestriche => 53 + Zeichen/2 (aufgerundet)
-        #        screen.addstr("%+61s" % 'Statusübersicht', curses.color_pair(5) | curses.A_BOLD)
-        screen.addstr(
-            "\n----------------------------------------------------------------------------------------------------------\n")
 
         process = subprocess.Popen(commandstr, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         status_out, status_err = process.communicate()
@@ -216,32 +244,8 @@ def main(screen):
                             vpnserver = service
                         break
 
-        # Output
-        fmt = "%(sd)-30s %(stat)-15s %(since)-15s"
-        screen.addstr(fmt % headers + '\n')
-        screen.addstr(
-            "----------------------------------------------------------------------------------------------------------\n")
-        for stype in services:
-            if short:
-                if stype == 'sys':
-                    continue
-            else:
-                screen.addstr("\n  --- {} ---".format(services[stype][0]), curses.color_pair(5) | curses.A_BOLD)
-            for s in services[stype][1:]:
-                if s.status == 'aktiv':
-                    screen.addstr("\n%-30s " % s.description)
-                    screen.addstr("%-15s " % s.status, curses.color_pair(3) | curses.A_BOLD)
-                elif s.status == 'inaktiv':
-                    screen.addstr("\n%-30s " % s.description)
-                    screen.addstr("%-15s " % s.status, curses.color_pair(4) | curses.A_BOLD)
-                elif s.status == 'nicht installiert':
-                    screen.addstr("\n%-30s " % s.description)
-                    screen.addstr("%-15s " % s.status, curses.color_pair(1))
-                else:
-                    screen.addstr("\n%-30s " % s.description)
-                    screen.addstr("%-15s " % s.status, curses.color_pair(2) | curses.A_BOLD)
-                screen.addstr("%-15s" % s.since)
-            screen.addstr("\n")
+        curses_output(screen, services)
+
 
         ### ---- VPN-Server ---- ####
 
