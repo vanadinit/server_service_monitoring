@@ -46,7 +46,7 @@ def define_services():
             Service(name='rsyslog',                 description='System Logging (rsyslog)'),
             Service(name='cron',                    description='Cron Service'),
             Service(name='dhcpcd',                  description='DHCP Client Service'),
-            Service(name='ntpd',                    description='Internetzeit Service (ntp)'),
+            Service(name='ntpd',                    description='Internetzeit Service (ntpd)'),
             #Service(name='saslauthd',               description='SASL-Auth'),
         ],
         'remote': [
@@ -62,7 +62,6 @@ def define_services():
         ],
         'com': [
             'Kommunikation',
-            Service(name='openvpn@server',          description='VPN-Server (openvpn)'),
             #Service(name='murmur',                  description='VOIP-Server (murmur)'),
             Service(name='mumble-server',           description='VOIP-Server (mumble)'),
             Service(name='prosody',                 description='Jabber/XMPP-Server (prosody)'),
@@ -149,8 +148,6 @@ def main(screen):
             servicedict[service.name] = service
             commandstr += service.name + '.service '
     commandstr += '2>&1'
-    #    print(commandstr)
-    #    sys.exit(1)
 
     # Define headers
     headers = {
@@ -186,7 +183,6 @@ def main(screen):
         servicestatuses = sysstatus.split(bytes.decode(b'\xe2\x97\x8f '))
 
         statuserrors = servicestatuses[0].split('\n')
-        LOG.info(statuserrors)
         for statuserror in statuserrors:
             if statuserror:
                 servicename = re.search(r"(\S+)\.service", statuserror).group(1)
@@ -228,7 +224,11 @@ def main(screen):
         screen.addstr(
             "----------------------------------------------------------------------------------------------------------\n")
         for stype in services:
-            screen.addstr(f"\n  --- {services[stype][0]} ---", curses.color_pair(5) | curses.A_BOLD)
+            if short:
+                if stype == 'sys':
+                    continue
+            else:
+                screen.addstr(f"\n  --- {services[stype][0]} ---", curses.color_pair(5) | curses.A_BOLD)
             for s in services[stype][1:]:
                 if s.status == 'aktiv':
                     screen.addstr("\n%-30s " % s.description)
@@ -337,4 +337,3 @@ def main(screen):
 
 
 curses.wrapper(main)
-# main('bla')
