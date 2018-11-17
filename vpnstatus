@@ -11,23 +11,17 @@
 #    tel - Telnet statt Logdatei                #
 #################################################
 
-
-# Path to logfile (format -> status-version 3)
-STATUS = "/tmp/ramdisk/openvpn-status.log"
-
 # Import
 import sys
 import time
 import curses
 import subprocess
 import telnetlib
+import vpnstatus_parser
+from curseslib import initialize_colors
 
 def main(screen):
-    curses.start_color()
-    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
-    curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
-    curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
-    curses.init_pair(4, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+    initialize_colors()
     
     screen.nodelay(1)
     
@@ -49,85 +43,20 @@ def main(screen):
         process = subprocess.Popen('systemctl status openvpn@server.service', shell=True, stdout=subprocess.PIPE, universal_newlines=True)
         sysstatus = process.stdout.read()
         statuslines = sysstatus.split('\n')
-        active = -1
+
+        status = 'inaktiv'
+        statusline = "Fehler in der Statusüberprüfung!!!\n"
         for line in statuslines:
             if line.find('Active') > -1:
-                if line.find('inactive') > -1:
-                    active = 0
-                else:
-                    active = 1
+                if line.find('inactive') == -1:
+                    status = 'aktiv'
                 vpnstatus = line
                 break
     
-        if active == -1:
-            screen.addstr("Fehler in der Statusüberprüfung!!!\n", curses.color_pair(2) | curses.A_BOLD)
-        elif active == 0:
-            screen.addstr(vpnstatus + '\n', curses.color_pair(2))
-        elif active == 1:
-            screen.addstr(vpnstatus + '\n', curses.color_pair(3))
-    
-            hosts = []
-    
-            if tel:
-                # Connect via Telnet to Openvpn Management Interface
-                # Query status
-                vpn = telnetlib.Telnet("127.0.0.1",5555)
-                vpn.write(b"status 3 \r\n")
-                data = bytes.decode(vpn.read_until(b"END",2))
-                vpn.write(b"exit \r\n")
-                vpn.close()
-                stats = data.split("\r\n")
-            else:
-                # Open logfile and read
-                status_file = open(STATUS, 'r')
-                stats = status_file.readlines()
-                status_file.flush()
-    
-            # Define headers
-            headers = {
-                'cn':    'Nutzername',
-                'virt':  'VPN-Addresse',
-                'real':  'Reale Addresse',
-                'sent':  'Gesendet',
-                'recv':  'Empfangen',
-                'since': 'Verbunden seit'
-            }
-    
-            # Nice byte formatting
-            sizes = [
-                (1<<50, 'PB'),
-                (1<<40, 'TB'),
-                (1<<30, 'GB'),
-                (1<<20, 'MB'),
-                (1<<10, 'KB'),
-                (1,       'B')
-            ]
-    
-            def byte2str(size):
-                for f, suf in sizes:
-                    if size >= f:
-                        break
-                return "%.2f %s" % (size / float(f), suf)
-    
-            # Search for the right data
-            for line in stats:
-                cols = line.split('\t')
-                if len(cols) == 12 and line.startswith('CLIENT_LIST'):
-                    host  = {}
-                    host['cn']    = cols[1]
-                    host['real']  = cols[2].split(':')[0]
-                    host['virt']  = cols[3]
-                    host['recv']  = byte2str(int(cols[5]))
-                    host['sent']  = byte2str(int(cols[6]))
-                    host['since'] = cols[7].strip()
-                    hosts.append(host)
-    
-            # Output
-            screen.addstr("\n----------------------------------------------------------------------------------------------------------\n")
-            fmt = "%(cn)-14s %(virt)-19s %(real)-16s %(sent)11s %(recv)13s %(since)28s"
-            screen.addstr(fmt % headers + '\n')
-            screen.addstr("----------------------------------------------------------------------------------------------------------\n")
-            screen.addstr("\n".join([fmt % h for h in hosts]), curses.color_pair(4) | curses.A_BOLD)
+        vpnstatus_parser.curses_status(screen, status, statusline)
+        if status == 'aktiv':
+            clients = vpnstatus_parser.get_status_info(tel)
+            vpnstatus_parser.curses_clients(screen, clients)
     
         screen.refresh()
         # Wait a moment
