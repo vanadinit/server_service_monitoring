@@ -51,7 +51,7 @@ def define_services():
         ],
         'remote': [
             'Fernwartung',
-            Service(name='sshd',                    description='SSH-Server (openssh)'),
+            Service(name='ssh',                    description='SSH-Server (openssh)'),
             Service(name='vncserver@:1',            description='VNC-Server (tigervnc)'),
         ],
         'network': [
@@ -147,7 +147,6 @@ def main(screen):
         for service in services[servicesbytype][1:]:
             servicedict[service.name] = service
             commandstr += service.name + '.service '
-    commandstr += '2>&1'
 
     # Define headers
     headers = {
@@ -178,11 +177,11 @@ def main(screen):
         screen.addstr(
             "\n----------------------------------------------------------------------------------------------------------\n")
 
-        process = subprocess.Popen(commandstr, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
-        sysstatus = process.stdout.read()
-        servicestatuses = sysstatus.split(bytes.decode(b'\xe2\x97\x8f '))
+        process = subprocess.Popen(commandstr, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        status_out, status_err = process.communicate()
+        servicestatuses = status_out.split(bytes.decode(b'\xe2\x97\x8f '))
+        statuserrors = status_err.split('\n')
 
-        statuserrors = servicestatuses[0].split('\n')
         for statuserror in statuserrors:
             if statuserror:
                 servicename = re.search(r"(\S+)\.service", statuserror).group(1)
@@ -228,7 +227,7 @@ def main(screen):
                 if stype == 'sys':
                     continue
             else:
-                screen.addstr(f"\n  --- {services[stype][0]} ---", curses.color_pair(5) | curses.A_BOLD)
+                screen.addstr("\n  --- {} ---".format(services[stype][0]), curses.color_pair(5) | curses.A_BOLD)
             for s in services[stype][1:]:
                 if s.status == 'aktiv':
                     screen.addstr("\n%-30s " % s.description)
