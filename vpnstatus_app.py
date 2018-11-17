@@ -35,17 +35,15 @@ def html_output(status, statusline, clients):
     htmltext += '</thead>\n'
     htmltext += '<tbody>\n'
     for client in clients:
-        htmltext += '<tr><td>' + client['cn'] + '</td><td>' + client['virt'] + '</td><td>' + client['real'] + '</td><td>' + client['recv'] + '</td><td>' + client['sent'] + '</td><td>' + client['since'] + '</td></tr>\n'
+        htmltext += '<tr><td>' + client['cn'] + '</td><td>' + client['virt'] + '</td><td>' + client[
+            'real'] + '</td><td>' + client['recv'] + '</td><td>' + client['sent'] + '</td><td>' + client[
+                        'since'] + '</td></tr>\n'
     htmltext += '</tbody>\n'
     htmltext += '</table>\n'
 
-    htmltext += "</body></html>";
-    output = str.encode(htmltext)
-    status = '200 OK'
-    headers = [('Content-type', 'text/html'),
-               ('Content-Length', str(len(output)))]
-    start_response(status, headers)
-    yield output
+    htmltext += "</body></html>"
+    return htmltext
+
 
 def vpnstatus(environ, start_response):
     import sys
@@ -58,9 +56,17 @@ def vpnstatus(environ, start_response):
     if status == 'aktiv':
         clients = vpnstatus_parser.get_status_info(True)
 
-    html_output(status, statusline, clients)
+    # For Debugging
+    #    print(clients, file=environ['wsgi.errors'])
+
+    htmltext = html_output(status, statusline, clients)
+    output = str.encode(htmltext)
+    status = '200 OK'
+    headers = [('Content-type', 'text/html'),
+               ('Content-Length', str(len(output)))]
+    start_response(status, headers)
+    yield output
 
 
 # mod_wsgi need the *application* variable to serve our small app
 application = vpnstatus
-
