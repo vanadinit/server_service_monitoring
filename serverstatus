@@ -58,7 +58,7 @@ def define_services():
     services['network'] = [
         'Netzwerk-Infrastruktur, Routing',
         Service(name='openvpn@server',          description='VPN-Server (openvpn)'),
-        Service(name='tor',                     description='Tor'),
+        Service(name='tor@default',                     description='Tor'),
         Service(name='polipo',                  description='Proxyserver (polipo)'),
     ]
     services['com'] = [
@@ -85,7 +85,7 @@ def define_services():
     ]
     services['mail'] = [
         'Email',
-        Service(name='postfix',                 description='Postfix-Mail-Server (postfix)'),
+        Service(name='postfix@-',                 description='Postfix-Mail-Server (postfix)'),
         #Service(name='exim4',                   description='Exim-Mail-Server (exim4)'),
         Service(name='fetchmail',               description='Fetchmail (fetchmail)'),
         Service(name='dovecot',                 description='Imap-Server (dovecot)'),
