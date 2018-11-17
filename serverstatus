@@ -214,7 +214,7 @@ def main(screen):
                             service.set_since(line[line.find('since') + 6:])
                         if servicename == 'openvpn@server' and vpn:
                             vpnstatus = line
-                            vpnserver = copy.copy(server)
+                            vpnserver = service
                         break
 
         # Output
@@ -259,7 +259,7 @@ def main(screen):
             screen.addstr(
                 "\n----------------------------------------------------------------------------------------------------------\n")
 
-            if vpnserver['stat'] == 'aktiv':
+            if vpnserver.status == 'aktiv':
                 hosts = []
 
                 if tel:
@@ -306,14 +306,14 @@ def main(screen):
                 # Search for the right data
                 for line in stats:
                     cols = line.split('\t')
-                    if len(cols) == 9 and line.startswith('CLIENT_LIST'):
+                    if len(cols) == 12 and line.startswith('CLIENT_LIST'):
                         host = {}
                         host['cn'] = cols[1]
                         host['real'] = cols[2].split(':')[0]
                         host['virt'] = cols[3]
-                        host['recv'] = byte2str(int(cols[4]))
-                        host['sent'] = byte2str(int(cols[5]))
-                        host['since'] = cols[6].strip()
+                        host['recv'] = byte2str(int(cols[5]))
+                        host['sent'] = byte2str(int(cols[6]))
+                        host['since'] = cols[7].strip()
                         hosts.append(host)
 
                 # Output
@@ -324,7 +324,7 @@ def main(screen):
                 screen.addstr("\n".join([fmt % h for h in hosts]), curses.color_pair(4) | curses.A_BOLD)
 
 
-            elif vpnserver['stat'] == 'inaktiv':
+            elif vpnserver.status == 'inaktiv':
                 screen.addstr(vpnstatus + '\n', curses.color_pair(2))
             else:
                 screen.addstr(vpnstatus + '\n', curses.color_pair(4))

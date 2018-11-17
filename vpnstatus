@@ -60,7 +60,7 @@ def main(screen):
                 break
     
         if active == -1:
-            screen.addstr("Fehler in der Statusüberprüfung!!!\n", curses.color_pair(2), curses.A_BOLD)
+            screen.addstr("Fehler in der Statusüberprüfung!!!\n", curses.color_pair(2) | curses.A_BOLD)
         elif active == 0:
             screen.addstr(vpnstatus + '\n', curses.color_pair(2))
         elif active == 1:
@@ -112,14 +112,14 @@ def main(screen):
             # Search for the right data
             for line in stats:
                 cols = line.split('\t')
-                if len(cols) == 9 and line.startswith('CLIENT_LIST'):
+                if len(cols) == 12 and line.startswith('CLIENT_LIST'):
                     host  = {}
                     host['cn']    = cols[1]
                     host['real']  = cols[2].split(':')[0]
                     host['virt']  = cols[3]
-                    host['recv']  = byte2str(int(cols[4]))
-                    host['sent']  = byte2str(int(cols[5]))
-                    host['since'] = cols[6].strip()
+                    host['recv']  = byte2str(int(cols[5]))
+                    host['sent']  = byte2str(int(cols[6]))
+                    host['since'] = cols[7].strip()
                     hosts.append(host)
     
             # Output
