@@ -23,6 +23,7 @@ import subprocess
 import sys
 import telnetlib
 import time
+from collections import OrderedDict
 
 
 class Service:
@@ -40,7 +41,7 @@ class Service:
 
 
 def define_services():
-    services = {
+    services = OrderedDict({
         'sys': [
             'Systemfunktionen',
             Service(name='rsyslog',                 description='System Logging (rsyslog)'),
@@ -93,7 +94,7 @@ def define_services():
             'Monitoring',
             Service(name='icinga2',                 description='Icinga2-Monitoring'),
         ],
-    }
+    })
 
     return services
 
