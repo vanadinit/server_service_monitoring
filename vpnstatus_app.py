@@ -11,37 +11,53 @@
 
 
 def html_output(status, statusline, clients):
-    htmltext = "<!DOCTYPE html>\n"
-    htmltext += '<html><head>\n'
-    htmltext += '<title>VPN-Server-Status</title>\n'
-    htmltext += '<link rel="stylesheet" type="text/css" href="vpnstatus.css" media="screen, projection" title="Standarddesign"/>\n'
-    htmltext += '<meta http-equiv="refresh" content="10">\n'
-    htmltext += '</head>\n'
-    htmltext += '<body>\n<h1>VPN-Server-Status</h1>\n'
-    htmltext += "<p>Serverstatus:<br/>"
+    htmltext = """<!DOCTYPE html>
+<html>
+    <head>
+        <title>VPN-Server-Status</title>
+        <link rel="stylesheet" type="text/css" href="vpnstatus.css" media="screen, projection" title="Standarddesign"/>
+        <meta http-equiv="refresh" content="10">
+    </head>
+    <body>
+        <h1>VPN-Server-Status</h1>
+        <p>Serverstatus:<br/>
+            <span class="active" {statusstyle}>{statusline}</span><br/>
+        </p>
+        <table>
+            <thead>
+                <tr><th>Nutzername</th><th>VPN-Addresse</th><th>Reale Addresse</th><th>Gesendet</th><th>Empfangen</th><th>Verbunden seit</th></tr>
+            </thead>
+            <tbody>{clientlist}
+            </tbody>
+        </table>
+    </body>
+</html>
+    """
 
     if status == 'aktiv':
-        htmltext += '<span class="active" style="color:#00FF00">' + statusline + '</span><br/>\n'
+        statusstyle = 'style="color:#00FF00"'
     elif status == 'inaktiv':
-        htmltext += '<span class="active" style="color:#FF0000;">' + statusline + '</span><br/>\n'
+        statusstyle = 'style="color:#FF0000"'
     else:
-        htmltext += '<span class="active" class="fehler">' + statusline + '</span><br/>\n'
+        statusstyle = 'class="fehler"'
 
-    htmltext += '</p>'
-
-    htmltext += '<table>\n'
-    htmltext += '<thead>\n'
-    htmltext += '<tr><th>Nutzername</th><th>VPN-Addresse</th><th>Reale Addresse</th><th>Gesendet</th><th>Empfangen</th><th>Verbunden seit</th></tr>\n'
-    htmltext += '</thead>\n'
-    htmltext += '<tbody>\n'
+    clientlist = ''
+    clienttempl =  '\n                <tr><td>{cn}</td><td>{virt}</td><td>{real}</td><td>{recv}</td><td>{sent}</td><td>{since}</td></tr>'
     for client in clients:
-        htmltext += '<tr><td>' + client['cn'] + '</td><td>' + client['virt'] + '</td><td>' + client[
-            'real'] + '</td><td>' + client['recv'] + '</td><td>' + client['sent'] + '</td><td>' + client[
-                        'since'] + '</td></tr>\n'
-    htmltext += '</tbody>\n'
-    htmltext += '</table>\n'
+        clientlist += clienttempl.format(
+            cn=client['cn'],
+            virt=client['virt'],
+            real=client['real'],
+            recv=client['recv'],
+            sent=client['sent'],
+            since=client['since'],
+        )
 
-    htmltext += "</body></html>"
+    htmltext = htmltext.format(
+        statusstyle=statusstyle,
+        statusline=statusline,
+        clientlist=clientlist,
+    )
     return htmltext
 
 
