@@ -1,12 +1,12 @@
-import telnetlib
 import curses
+import subprocess
+import telnetlib
 
 # Path to logfile (format -> status-version 3)
 STATUSFILE = "/tmp/ramdisk/openvpn-status.log"
 
 def curses_header(screen, tel):
     screen.addstr("\n\n")
-    #            screen.addstr("\n\n----------------------------------------------------------------------------------------------------------\n")
     if tel:
         screen.addstr("%+66s" % 'VPN-Server (Telnet-Abfrage)', curses.color_pair(5) | curses.A_BOLD)
     else:
@@ -26,7 +26,7 @@ def curses_status(screen, status, statusline):
 
 def curses_clients(screen, clients):
     # Define headers
-    headers2 = {
+    headers = {
         'cn': 'Nutzername',
         'virt': 'VPN-Addresse',
         'real': 'Reale Addresse',
@@ -36,11 +36,26 @@ def curses_clients(screen, clients):
     }
 
     fmt = "%(cn)-14s %(virt)-19s %(real)-16s %(sent)11s %(recv)13s %(since)28s"
-    screen.addstr(fmt % headers2 + '\n')
+    screen.addstr(fmt % headers + '\n')
     screen.addstr(
         "----------------------------------------------------------------------------------------------------------\n")
     screen.addstr("\n".join([fmt % h for h in clients]), curses.color_pair(4) | curses.A_BOLD)
 
+def get_service_info():
+    process = subprocess.Popen('systemctl status openvpn@server.service', shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+    sysstatus = process.stdout.read()
+    statuslines = sysstatus.split('\n')
+
+    status = 'inaktiv'
+    statusline = "Fehler in der Statusüberprüfung!!!\n"
+    for line in statuslines:
+        if line.find('Active') > -1:
+            if line.find('inactive') == -1:
+                status = 'aktiv'
+            statusline = line
+            break
+
+    return status, statusline
 
 def get_status_info(tel):
     clients = []

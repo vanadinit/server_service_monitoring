@@ -5,6 +5,7 @@
 # Skript zum Auslesen des VPN-Server-Status     #
 # --------------------------------------------- #
 # Erstellt von Johannes Paul, 09.04.2014        #
+# Bearbeitet am 17.11.2018                      #
 # --------------------------------------------- #
 # Syntax: vpnstatus [tel]                       #
 # Parameter (VPN-Server):                       #
@@ -15,8 +16,6 @@
 import sys
 import time
 import curses
-import subprocess
-import telnetlib
 import vpnstatus_parser
 from curseslib import initialize_colors
 
@@ -37,21 +36,9 @@ def main(screen):
         screen.clear()
         screen.move(0,0)
         screen.addstr("Zum Beenden <q> drücken!\n\n", curses.color_pair(1) | curses.A_BOLD)
-    
-        # Vpnserver active?
         screen.addstr("Serverstatus:\n")
-        process = subprocess.Popen('systemctl status openvpn@server.service', shell=True, stdout=subprocess.PIPE, universal_newlines=True)
-        sysstatus = process.stdout.read()
-        statuslines = sysstatus.split('\n')
 
-        status = 'inaktiv'
-        statusline = "Fehler in der Statusüberprüfung!!!\n"
-        for line in statuslines:
-            if line.find('Active') > -1:
-                if line.find('inactive') == -1:
-                    status = 'aktiv'
-                statusline = line
-                break
+        status, statusline = vpnstatus_parser.get_service_info()
     
         vpnstatus_parser.curses_status(screen, status, statusline)
         screen.addstr("\n")
