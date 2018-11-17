@@ -15,7 +15,6 @@
 #################################################
 
 # Import
-import copy
 import curses
 import logging
 import re
@@ -47,7 +46,7 @@ def define_services():
         Service(name='rsyslog',                 description='System Logging (rsyslog)'),
         Service(name='cron',                    description='Cron Service'),
         Service(name='dhcpcd',                  description='DHCP Client Service'),
-        Service(name='ntpd',                    description='Internetzeit Service (ntpd)'),
+        Service(name='ntp',                     description='Internetzeit Service (ntp)'),
         #Service(name='saslauthd',               description='SASL-Auth'),
     ]
     services['remote'] = [
@@ -76,7 +75,7 @@ def define_services():
         Service(name='apache2',                 description='Webserver (apache)'),
         Service(name='mariadb',                 description='MySQL-Server (mariadb)'),
         #Service(name='mysql',                   description='MySQL-Server (mariadb)'),
-        Service(name='postgresql@9.4-main',     description='PostgreSQL-Server (postgresql)'),
+        Service(name='postgresql@9.6-main',     description='PostgreSQL-Server (postgresql)'),
         Service(name='vsftpd',                  description='FTP-Server (vsftpd)'),
         Service(name='smbd',                    description='Dateiserver (samba, smbd)'),
         Service(name='icecast2',                description='Streaming Server (icecast2)'),
