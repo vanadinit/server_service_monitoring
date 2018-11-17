@@ -41,60 +41,59 @@ class Service:
 
 
 def define_services():
-    services = OrderedDict({
-        'sys': [
-            'Systemfunktionen',
-            Service(name='rsyslog',                 description='System Logging (rsyslog)'),
-            Service(name='cron',                    description='Cron Service'),
-            Service(name='dhcpcd',                  description='DHCP Client Service'),
-            Service(name='ntpd',                    description='Internetzeit Service (ntpd)'),
-            #Service(name='saslauthd',               description='SASL-Auth'),
-        ],
-        'remote': [
-            'Fernwartung',
-            Service(name='ssh',                    description='SSH-Server (openssh)'),
-            Service(name='vncserver@:1',            description='VNC-Server (tigervnc)'),
-        ],
-        'network': [
-            'Netzwerk-Infrastruktur, Routing',
-            Service(name='openvpn@server',          description='VPN-Server (openvpn)'),
-            Service(name='tor',                     description='Tor'),
-            Service(name='polipo',                  description='Proxyserver (polipo)'),
-        ],
-        'com': [
-            'Kommunikation',
-            #Service(name='murmur',                  description='VOIP-Server (murmur)'),
-            Service(name='mumble-server',           description='VOIP-Server (mumble)'),
-            Service(name='prosody',                 description='Jabber/XMPP-Server (prosody)'),
-            #Service(name='quasselcore',             description='Quassel-Core'),
-            Service(name='inspircd',                description='IRC-Server (inspircd)'),
-            Service(name='etherpad-lite',           description='Etherpad-Lite'),
-        ],
-        'web': [
-            'Web, Datenbank, Dateien',
-            #Service(name='httpd',                   description='Webserver (apache)'),
-            Service(name='apache2',                 description='Webserver (apache)'),
-            Service(name='mariadb',                 description='MySQL-Server (mariadb)'),
-            #Service(name='mysql',                   description='MySQL-Server (mariadb)'),
-            Service(name='postgresql@9.4-main',     description='PostgreSQL-Server (postgresql)'),
-            Service(name='vsftpd',                  description='FTP-Server (vsftpd)'),
-            Service(name='smbd',                    description='Dateiserver (samba, smbd)'),
-            Service(name='icecast2',                description='Streaming Server (icecast2)'),
-            Service(name='mpd',                     description='Musik Player Daemon'),
-            Service(name='logitechmediaserver',     description='Squeezebox-Server'),
-        ],
-        'mail': [
-            'Email',
-            Service(name='postfix',                 description='Postfix-Mail-Server (postfix)'),
-            #Service(name='exim4',                   description='Exim-Mail-Server (exim4)'),
-            Service(name='fetchmail',               description='Fetchmail (fetchmail)'),
-            Service(name='dovecot',                 description='Imap-Server (dovecot)'),
-        ],
-        'monit': [
-            'Monitoring',
-            Service(name='icinga2',                 description='Icinga2-Monitoring'),
-        ],
-    })
+    services = OrderedDict()
+    services['sys'] = [
+        'Systemfunktionen',
+        Service(name='rsyslog',                 description='System Logging (rsyslog)'),
+        Service(name='cron',                    description='Cron Service'),
+        Service(name='dhcpcd',                  description='DHCP Client Service'),
+        Service(name='ntpd',                    description='Internetzeit Service (ntpd)'),
+        #Service(name='saslauthd',               description='SASL-Auth'),
+    ]
+    services['remote'] = [
+        'Fernwartung',
+        Service(name='ssh',                     description='SSH-Server (openssh)'),
+        Service(name='vncserver@:1',            description='VNC-Server (tigervnc)'),
+    ]
+    services['network'] = [
+        'Netzwerk-Infrastruktur, Routing',
+        Service(name='openvpn@server',          description='VPN-Server (openvpn)'),
+        Service(name='tor',                     description='Tor'),
+        Service(name='polipo',                  description='Proxyserver (polipo)'),
+    ]
+    services['com'] = [
+        'Kommunikation',
+        #Service(name='murmur',                  description='VOIP-Server (murmur)'),
+        Service(name='mumble-server',           description='VOIP-Server (mumble)'),
+        Service(name='prosody',                 description='Jabber/XMPP-Server (prosody)'),
+        #Service(name='quasselcore',             description='Quassel-Core'),
+        Service(name='inspircd',                description='IRC-Server (inspircd)'),
+        Service(name='etherpad-lite',           description='Etherpad-Lite'),
+    ]
+    services['web'] = [
+        'Web, Datenbank, Dateien',
+        #Service(name='httpd',                   description='Webserver (apache)'),
+        Service(name='apache2',                 description='Webserver (apache)'),
+        Service(name='mariadb',                 description='MySQL-Server (mariadb)'),
+        #Service(name='mysql',                   description='MySQL-Server (mariadb)'),
+        Service(name='postgresql@9.4-main',     description='PostgreSQL-Server (postgresql)'),
+        Service(name='vsftpd',                  description='FTP-Server (vsftpd)'),
+        Service(name='smbd',                    description='Dateiserver (samba, smbd)'),
+        Service(name='icecast2',                description='Streaming Server (icecast2)'),
+        Service(name='mpd',                     description='Musik Player Daemon'),
+        Service(name='logitechmediaserver',     description='Squeezebox-Server'),
+    ]
+    services['mail'] = [
+        'Email',
+        Service(name='postfix',                 description='Postfix-Mail-Server (postfix)'),
+        #Service(name='exim4',                   description='Exim-Mail-Server (exim4)'),
+        Service(name='fetchmail',               description='Fetchmail (fetchmail)'),
+        Service(name='dovecot',                 description='Imap-Server (dovecot)'),
+    ]
+    services['monit'] = [
+        'Monitoring',
+        Service(name='icinga2',                 description='Icinga2-Monitoring'),
+    ]
 
     return services
 
