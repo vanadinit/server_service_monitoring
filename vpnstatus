@@ -50,7 +50,7 @@ def main(screen):
             if line.find('Active') > -1:
                 if line.find('inactive') == -1:
                     status = 'aktiv'
-                vpnstatus = line
+                statusline = line
                 break
     
         vpnstatus_parser.curses_status(screen, status, statusline)
