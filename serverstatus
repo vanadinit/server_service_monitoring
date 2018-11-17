@@ -6,7 +6,7 @@
 # Status verschiedener Serverdienste            #
 # --------------------------------------------- #
 # Erstellt von Johannes Paul, 09.04.2014        #
-# Bearbeitet am 27.12.2016                      #
+# Bearbeitet am 17.11.2018                      #
 # --------------------------------------------- #
 # Syntax: serverstatus [vpn] [tel]              #
 # Parameter (VPN-Server):                       #
@@ -15,22 +15,97 @@
 #################################################
 
 # Import
-import sys
-import time
-import curses
-import subprocess
 import copy
+import curses
+import logging
+import re
+import subprocess
+import sys
 import telnetlib
-from collections import OrderedDict
+import time
 
-def main(screen):
+class Service:
+    def __init__(self, name, description, type):
+        self.name = name
+        self.description = description
+        self.status = None
+        self.since = None
+        self.type = type
+
+    def set_status(self, status):
+        self.status = status
+
+    def set_since(self, since):
+        self.since = since
+
+
+def define_services(short):
+    services = []
+
+    services.append(Service(name='rsyslog',             description='System Logging (rsyslog)',         type='sys'))
+    services.append(Service(name='cron',                description='Cron Service',                     type='sys'))
+    services.append(Service(name='dhcpcd',              description='DHCP Client Service',              type='sys'))
+    services.append(Service(name='ntp',                 description='Internetzeit Service (ntp)',       type='sys'))
+    services.append(Service(name='saslauthd',           description='SASL-Auth',                        type='sys'))
+
+    services.append(Service(name='sshd',                description='SSH-Server (openssh)',             type='remote'))
+    services.append(Service(name='ssh',                 description='SSH-Server (openssh)',             type='remote'))
+    services.append(Service(name='vncserver@:1',        description='VNC-Server (tigervnc)',            type='remote'))
+
+    services.append(Service(name='openvpn@server',      description='VPN-Server (openvpn)',             type='network'))
+    services.append(Service(name='tor',                 description='Tor',                              type='network'))
+    services.append(Service(name='polipo',              description='Proxyserver (polipo)',             type='network'))
+
+    services.append(Service(name='openvpn@server',      description='VPN-Server (openvpn)',             type='com'))
+    services.append(Service(name='murmur',              description='VOIP-Server (murmur)',             type='com'))
+    services.append(Service(name='mumble-server',       description='VOIP-Server (mumble)',             type='com'))
+    services.append(Service(name='prosody',             description='Jabber/XMPP-Server (prosody)',     type='com'))
+    services.append(Service(name='quasselcore',         description='Quassel-Core',                     type='com'))
+    services.append(Service(name='inspircd',            description='IRC-Server (inspircd)',            type='com'))
+    services.append(Service(name='etherpad-lite',       description='Etherpad-Lite',                    type='com'))
+
+    services.append(Service(name='httpd',               description='Webserver (apache)',               type='web'))
+    services.append(Service(name='apache2',             description='Webserver (apache)',               type='web'))
+    services.append(Service(name='mariadb',             description='MySQL-Server (mariadb)',           type='web'))
+    services.append(Service(name='mysql',               description='MySQL-Server (mariadb)',           type='web'))
+    services.append(Service(name='postgresql@9.4-main', description='PostgreSQL-Server (postgresql)',   type='web'))
+    services.append(Service(name='vsftpd',              description='FTP-Server (vsftpd)',              type='web'))
+    services.append(Service(name='smbd',                description='Dateiserver (samba, smbd)',        type='web'))
+    services.append(Service(name='icecast2',            description='Streaming Server (icecast2)',      type='web'))
+    services.append(Service(name='mpd',                 description='Musik Player Daemon',              type='web'))
+    services.append(Service(name='logitechmediaserver', description='Squeezebox-Server',                type='web'))
+
+    services.append(Service(name='postfix',             description='Postfix-Mail-Server (postfix)',    type='mail'))
+    services.append(Service(name='exim4',               description='Exim-Mail-Server (exim4)',         type='mail'))
+    services.append(Service(name='fetchmail',           description='Fetchmail (fetchmail)',            type='mail'))
+    services.append(Service(name='dovecot',             description='Imap-Server (dovecot)',            type='mail'))
+
+    if not short:
+        services.append(Service(name='icinga2',             description='Icinga2-Monitoring',               type='monit'))
+
+    return services
+
+def initialize_logger():
+    logger = logging.getLogger(__file__)
+    hdlr = logging.FileHandler(__file__ + ".log")
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    hdlr.setFormatter(formatter)
+    logger.addHandler(hdlr)
+    logger.setLevel(logging.DEBUG)
+    return logger
+
+def initialize_colors():
     curses.start_color()
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.init_pair(4, curses.COLOR_YELLOW, curses.COLOR_BLACK)
     curses.init_pair(5, curses.COLOR_BLUE, curses.COLOR_BLACK)
-    
+
+def main(screen):
+    LOG = initialize_logger()
+
+    initialize_colors()
     screen.nodelay(1)
     
     if 'vpn' in sys.argv:
@@ -48,7 +123,24 @@ def main(screen):
         short = True
     else:
         short = False
-   
+
+    services = define_services(short)
+
+    commandstr = 'systemctl status '
+    servicedict = {}
+    for service in services:
+        servicedict[service.name] = service
+        commandstr += service.name + '.service '
+    commandstr += '2>&1'
+#    print(commandstr)
+#    sys.exit(1)
+
+    # Define headers
+    headers = {
+        'sd':    'Serverdienst',
+        'stat':  'Status',
+        'since':  'Aktiv seit',
+    }
 
     # Dauerschleife zur Ueberprüfung und Ausgabe
     while True:
@@ -70,115 +162,47 @@ def main(screen):
         # Insgesamt 106 Bindestriche => 53 + Zeichen/2 (aufgerundet)
 #        screen.addstr("%+61s" % 'Statusübersicht', curses.color_pair(5) | curses.A_BOLD)
         screen.addstr("\n----------------------------------------------------------------------------------------------------------\n")
-        
-    #--- Systemfunktionen ---
-        s1items =[ 
-            ('rsyslog',          'System Logging (rsyslog)'),
-            ('cron',             'Cron Service'),
-            ('dhcpcd',           'DHCP Client Service'),
-            ('ntp',              'Internetzeit Service (ntp)'),
-#            ('saslauthd',        'SASL-Auth'),
-        ]
-        
-    #--- Fernwartung ---
-        s2items =[
-#            ('sshd',              'SSH-Server (openssh)'),
-            ('ssh',              'SSH-Server (openssh)'),
-            ('vncserver@:1',     'VNC-Server (tigervnc)'),
-        ]
-        
-    #--- Netzwerk-Infrastruktur, Routing ---
-        s3items =[
-            ('openvpn@server',   'VPN-Server (openvpn)'),
-            ('tor',              'Tor'),
-            ('polipo',           'Proxyserver (polipo)'),
-        ]
-        
-    #--- Kommunikation ---
-        s4items =[
-#            ('murmur',           'VOIP-Server (murmur)'),
-            ('mumble-server',    'VOIP-Server (mumble)'),
-            ('prosody',          'Jabber/XMPP-Server (prosody)'),
-            ('quasselcore',      'Quassel-Core'),
-            ('inspircd',         'IRC-Server (inspircd)'),
-            ('etherpad-lite',    'Etherpad-Lite'),
-        ]
-    #--- Web, Datenbank, Dateien, Musik ---
-        s5items =[
-#            ('httpd',            'Webserver (apache)'),
-            ('apache2',          'Webserver (apache)'),
-#            ('mariadb',           'MySQL-Server (mariadb)'),
-            ('mysql',           'MySQL-Server (mariadb)'),
-            ('postgresql@9.4-main',       'PostgreSQL-Server (postgresql)'),
-            ('vsftpd',           'FTP-Server (vsftpd)'),
-            ('smbd',             'Dateiserver (samba, smbd)'),
-            ('icecast2',         'Streaming Server (icecast2)'),
-            ('mpd',              'Musik Player Daemon'),
-            ('logitechmediaserver',       'Squeezebox-Server'),
-        ]
-    #--- Email ---
-        s6items =[
-            ('postfix',          'Postfix-Mail-Server (postfix)'),
-            ('exim4',            'Exim-Mail-Server (exim4)'),
-#            ('fetchmail',        'Fetchmail (fetchmail)'),
-            ('dovecot',          'Imap-Server (dovecot)'),
-        ]
-    #--- Monitoring ---
-        s7items =[
-            ('icinga2',          'Icinga2-Monitoring'),
-        ]
-        
-        if short:
-            serveritems = s2items + s3items + s4items + s5items + s6items + s7items
-        else:
-            serveritems = s1items + s2items + s3items + s4items + s5items + s6items + s7items
-        
-        serverarray = OrderedDict(serveritems)
-    
-        servers = []
-    
-        # Define headers
-        headers = {
-            'sd':    'Serverdienst',
-            'stat':  'Status',
-            'since':  'Aktiv seit',
-        }
 
-        commandstr = 'systemctl status '
-        for service in list(serverarray.keys()):
-            commandstr += service + '.service '
         process = subprocess.Popen(commandstr, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
         sysstatus = process.stdout.read()
         servicestatuses = sysstatus.split(bytes.decode(b'\xe2\x97\x8f '))
+
+        statuserrors = servicestatuses[0].split('\n')
+        LOG.info(statuserrors)
+        for statuserror in statuserrors:
+            if statuserror:
+                servicename = re.search(r"(\S+)\.service", statuserror).group(1)
+                service = servicedict[servicename]
+                if ('could not be found' in statuserror):
+                    service.set_status('nicht installiert')
+                    service.set_since('--')
     
-        for servicestatus in servicestatuses:
+        for servicestatus in servicestatuses[1:]:
             if servicestatus:
                 statuslines = servicestatus.split('\n')
-                service = statuslines[0].split('.service')[0]
-                server = {}
-                server['sd'] = serverarray[service]
-                server['stat'] = 'Fehler !!!'
-                server['since']= '--'
+                servicename = re.search(r"(\S+)\.service", statuslines[0]).group(1)
+                service = servicedict[servicename]
+                service.set_status('Fehler !!!')
+                service.set_since('--')
                 
                 for line in statuslines:
                     if ('Loaded' in line):
                         if ('not-found' in line):
-                            server['stat'] = 'nicht installiert'
+                            service.set_status('nicht installiert')
                             break
                     if ('Active' in line):
                         if ('inactive' in line):
-                            server['stat'] = 'inaktiv'
+                            service.set_status('inaktiv')
                         elif ('active (running)' in line):
-                            server['stat'] = 'aktiv'
-                            server['since']= line[line.find('since')+6:]
+                            service.set_status('aktiv')
+                            service.set_since(line[line.find('since')+6:])
                         elif ('failed' in line):
-                            server['stat'] = 'fehlgeschlagen'
-                            server['since']= line[line.find('since')+6:]
-                        if service == 'openvpn@server' and vpn:
+                            service.set_status('fehlgeschlagen')
+                            service.set_since(line[line.find('since')+6:])
+                        if servicename == 'openvpn@server' and vpn:
                             vpnstatus = line
                             vpnserver = copy.copy(server)
                         break
-                servers.append(server)
     
         # Output
         fmt = "%(sd)-30s %(stat)-15s %(since)-15s"
@@ -187,34 +211,34 @@ def main(screen):
         outcount = 0
         if not short:
             screen.addstr("\n  --- Systemfunktionen ---", curses.color_pair(5) | curses.A_BOLD)
-        for s in servers:
-            if s['stat'] == 'aktiv':
-                screen.addstr("\n%-30s " % s['sd'])
-                screen.addstr("%-15s " % s['stat'], curses.color_pair(3) | curses.A_BOLD)
-            elif s['stat'] == 'inaktiv':
-                screen.addstr("\n%-30s " % s['sd'])
-                screen.addstr("%-15s " % s['stat'], curses.color_pair(4) | curses.A_BOLD)
-            elif s['stat'] == 'nicht installiert':
-                screen.addstr("\n%-30s " % s['sd'])
-                screen.addstr("%-15s " % s['stat'], curses.color_pair(1))
+        for s in services:
+            if s.status == 'aktiv':
+                screen.addstr("\n%-30s " % s.description)
+                screen.addstr("%-15s " % s.status, curses.color_pair(3) | curses.A_BOLD)
+            elif s.status == 'inaktiv':
+                screen.addstr("\n%-30s " % s.description)
+                screen.addstr("%-15s " % s.status, curses.color_pair(4) | curses.A_BOLD)
+            elif s.status == 'nicht installiert':
+                screen.addstr("\n%-30s " % s.description)
+                screen.addstr("%-15s " % s.status, curses.color_pair(1))
             else:
-                screen.addstr("\n%-30s " % s['sd'])
-                screen.addstr("%-15s " % s['stat'], curses.color_pair(2) | curses.A_BOLD)
-            screen.addstr("%-15s" % s['since'])
-            if not short:
-                outcount += 1                
-                if outcount == len(s1items):
-                    screen.addstr("\n\n  --- Fernwartung ---", curses.color_pair(5) | curses.A_BOLD)
-                elif outcount == len(s1items)+len(s2items):
-                    screen.addstr("\n\n  --- Netzwerk-Infrastruktur, Routing ---", curses.color_pair(5) | curses.A_BOLD)
-                elif outcount == len(s1items)+len(s2items)+len(s3items):
-                    screen.addstr("\n\n  --- Kommunikation ---", curses.color_pair(5) | curses.A_BOLD)
-                elif outcount == len(s1items)+len(s2items)+len(s3items)+len(s4items):
-                    screen.addstr("\n\n  --- Web, Datenbank, Dateien ---", curses.color_pair(5) | curses.A_BOLD)
-                elif outcount == len(s1items)+len(s2items)+len(s3items)+len(s4items)+len(s5items):
-                    screen.addstr("\n\n  --- Email ---", curses.color_pair(5) | curses.A_BOLD)
-                elif outcount == len(s1items)+len(s2items)+len(s3items)+len(s4items)+len(s5items)+len(s6items):
-                    screen.addstr("\n\n  --- Monitoring ---", curses.color_pair(5) | curses.A_BOLD)
+                screen.addstr("\n%-30s " % s.description)
+                screen.addstr("%-15s " % s.status, curses.color_pair(2) | curses.A_BOLD)
+            screen.addstr("%-15s" % s.since)
+            # if not short:
+            #     outcount += 1
+            #     if outcount == len(s1items):
+            #         screen.addstr("\n\n  --- Fernwartung ---", curses.color_pair(5) | curses.A_BOLD)
+            #     elif outcount == len(s1items)+len(s2items):
+            #         screen.addstr("\n\n  --- Netzwerk-Infrastruktur, Routing ---", curses.color_pair(5) | curses.A_BOLD)
+            #     elif outcount == len(s1items)+len(s2items)+len(s3items):
+            #         screen.addstr("\n\n  --- Kommunikation ---", curses.color_pair(5) | curses.A_BOLD)
+            #     elif outcount == len(s1items)+len(s2items)+len(s3items)+len(s4items):
+            #         screen.addstr("\n\n  --- Web, Datenbank, Dateien ---", curses.color_pair(5) | curses.A_BOLD)
+            #     elif outcount == len(s1items)+len(s2items)+len(s3items)+len(s4items)+len(s5items):
+            #         screen.addstr("\n\n  --- Email ---", curses.color_pair(5) | curses.A_BOLD)
+            #     elif outcount == len(s1items)+len(s2items)+len(s3items)+len(s4items)+len(s5items)+len(s6items):
+            #         screen.addstr("\n\n  --- Monitoring ---", curses.color_pair(5) | curses.A_BOLD)
     
     
         ### ---- VPN-Server ---- ####
@@ -306,4 +330,4 @@ def main(screen):
     curses.endwin()
 
 curses.wrapper(main)
-
+#main('bla')
