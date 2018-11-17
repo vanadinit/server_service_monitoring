@@ -54,6 +54,7 @@ def main(screen):
                 break
     
         vpnstatus_parser.curses_status(screen, status, statusline)
+        screen.addstr("\n")
         if status == 'aktiv':
             clients = vpnstatus_parser.get_status_info(tel)
             vpnstatus_parser.curses_clients(screen, clients)
