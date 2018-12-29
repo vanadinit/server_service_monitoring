@@ -128,16 +128,8 @@ def curses_output(screen, services):
     screen.move(0, 0)
     screen.addstr("Zum Beenden <q> drücken!\n", curses.color_pair(1) | curses.A_BOLD)
 
-    ### ---- CPU --- ###
-    #        process = subprocess.Popen("ps -eao 'pcpu' | awk '{a+=$1} END {print a}'", shell=True, stdout=subprocess.PIPE)
-    #        cpu = process.stdout.read().rstrip()
-    #        screen.addstr("\nCPU: %s %%" % bytes.decode(cpu), curses.A_BOLD)
-
     ### ---- Statusübersicht ---- ####
-
-    #        screen.addstr("\n\n----------------------------------------------------------------------------------------------------------\n")
     # Insgesamt 106 Bindestriche => 53 + Zeichen/2 (aufgerundet)
-    #        screen.addstr("%+61s" % 'Statusübersicht', curses.color_pair(5) | curses.A_BOLD)
     screen.addstr(
         "\n----------------------------------------------------------------------------------------------------------\n")
 
