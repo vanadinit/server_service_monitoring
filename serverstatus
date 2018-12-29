@@ -98,6 +98,7 @@ def define_services():
         'Monitoring',
         Service(name='icinga2',                 description='Icinga2-Monitoring'),
     ]
+    LOG.debug('Services defined')
 
     return services
 
@@ -159,15 +160,6 @@ def curses_output(screen, services, short=False):
 
 
 def main(screen):
-    parser = argparse.ArgumentParser(description='Show status of various services')
-    parser.add_argument('--vpn', action='store_true', help='show vpn status in detail')
-    parser.add_argument('--tel', action='store_true', help='use telnet instead of log file (vpn)')
-    parser.add_argument('--short', action='store_true', help='short output')
-    parser.add_argument('--debug', action='store_true', help='log debugging information to logfile')
-    args = parser.parse_args()
-
-    LOG = initialize_logger(debug=args.debug, file=args.debug)
-    LOG.debug(f'Retrieved arguments: {args}')
 
     initialize_colors()
     screen.nodelay(1)
@@ -183,7 +175,9 @@ def main(screen):
             if service.name == 'openvpn@server':
                 vpnservice = service
 
-    # Dauerschleife zur Ueberprüfung und Ausgabe
+    LOG.debug(f'Command is: \n {commandstr}')
+
+    # Dauerschleife zur Überprüfung und Ausgabe
     while True:
         # Exit with <q>
         c = screen.getch()
@@ -245,7 +239,18 @@ def main(screen):
         screen.refresh()
         # Wait a moment
         time.sleep(1)
+    LOG.info('Closing ...\n')
     curses.endwin()
 
+parser = argparse.ArgumentParser(description='Show status of various services')
+parser.add_argument('--vpn', action='store_true', help='show vpn status in detail')
+parser.add_argument('--tel', action='store_true', help='use telnet instead of log file (vpn)')
+parser.add_argument('--short', action='store_true', help='short output')
+parser.add_argument('--debug', action='store_true', help='log debugging information to logfile')
+args = parser.parse_args()
+
+LOG = initialize_logger(debug=args.debug, file=args.debug)
+LOG.info('--- SERVERSTATUS ---')
+LOG.debug(f'Retrieved arguments: {args}')
 
 curses.wrapper(main)
