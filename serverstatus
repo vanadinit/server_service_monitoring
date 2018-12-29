@@ -15,11 +15,11 @@
 #################################################
 
 # Import
+import argparse
 import curses
 import logging
 import re
 import subprocess
-import sys
 import time
 import vpnstatus_parser
 from collections import OrderedDict
@@ -102,27 +102,25 @@ def define_services():
     return services
 
 
-def initialize_logger():
+def initialize_logger(debug=False, file=False):
     logger = logging.getLogger(__file__)
-    hdlr = logging.FileHandler(__file__ + ".log")
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    hdlr.setFormatter(formatter)
-    logger.addHandler(hdlr)
     logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    if file:
+        hdlr = logging.FileHandler(__file__ + ".log")
+        hdlr.setFormatter(formatter)
+        logger.addHandler(hdlr)
+    if not debug:
+        logger.setLevel(logging.INFO)
     return logger
 
-def curses_output(screen, services):
+def curses_output(screen, services, short=False):
     # Define headers
     headers = {
         'sd': 'Serverdienst',
         'stat': 'Status',
         'since': 'Aktiv seit',
     }
-
-    if 'short' in sys.argv:
-        short = True
-    else:
-        short = False
 
     screen.clear()
     screen.move(0, 0)
@@ -161,21 +159,18 @@ def curses_output(screen, services):
 
 
 def main(screen):
-    LOG = initialize_logger()
+    parser = argparse.ArgumentParser(description='Show status of various services')
+    parser.add_argument('--vpn', action='store_true', help='show vpn status in detail')
+    parser.add_argument('--tel', action='store_true', help='use telnet instead of log file (vpn)')
+    parser.add_argument('--short', action='store_true', help='short output')
+    parser.add_argument('--debug', action='store_true', help='log debugging information to logfile')
+    args = parser.parse_args()
+
+    LOG = initialize_logger(debug=args.debug, file=args.debug)
+    LOG.debug(f'Retrieved arguments: {args}')
 
     initialize_colors()
     screen.nodelay(1)
-
-    if 'vpn' in sys.argv:
-        vpn = True
-        vpnstatusline = 'Fehler in der Statusüberprüfung!!!'
-    else:
-        vpn = False
-
-    if 'tel' in sys.argv:
-        tel = True
-    else:
-        tel = False
 
     services = define_services()
 
@@ -234,14 +229,14 @@ def main(screen):
                             service.set_since(line[line.find('since') + 6:])
                         break
 
-        curses_output(screen, services)
+        curses_output(screen, services, args.short)
 
         ### ---- VPN-Server ---- ####
 
-        if vpn:
-            vpnstatus_parser.curses_header(screen, tel)
+        if args.vpn:
+            vpnstatus_parser.curses_header(screen, args.tel)
             if vpnservice.status == 'aktiv':
-                clients = vpnstatus_parser.get_status_info(tel)
+                clients = vpnstatus_parser.get_status_info(args.tel)
                 vpnstatus_parser.curses_clients(screen, clients)
             else:
                 vpnstatus_parser.curses_status(screen, vpnservice.status, vpnservice.statusline)
