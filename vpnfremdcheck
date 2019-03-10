@@ -1,7 +1,6 @@
 #!/bin/bash
 
-#logdatei='/home/jolami/openvpntest2'
-logdatei='/tmp/ramdisk/openvpn-status.log'
+logdatei='/var/ramdisk/openvpn-status.log'
 emailadr='root@localhost'
 
 clients=$(awk '/^CLIENT_LIST/ {print $2 " " $3}' $logdatei)
