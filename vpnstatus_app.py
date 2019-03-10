@@ -9,6 +9,7 @@
 # --------------------------------------------- #
 #################################################
 
+import os
 
 def html_output(status, statusline, clients):
     htmltext = """<!DOCTYPE html>
@@ -63,7 +64,7 @@ def html_output(status, statusline, clients):
 
 def vpnstatus(environ, start_response):
     import sys
-    sys.path.append('/root/scripts')
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
     import vpnstatus_parser
 
     status, statusline = vpnstatus_parser.get_service_info()
