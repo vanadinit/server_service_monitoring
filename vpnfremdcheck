@@ -14,10 +14,10 @@ for clientip in $clientips; do
 done
 
 if $foreign; then
-	[[ -f "/tmp/ramdisk/openvpnforeign.lock" ]] || mail -s "Fremder VPN-Login" $emailadr <<< $clients
+	[[ -f "/var/ramdisk/openvpnforeign.lock" ]] || mail -s "Fremder VPN-Login" $emailadr <<< $clients
 	touch /tmp/ramdisk/openvpnforeign.lock
 else
-	[[ -f "/tmp/ramdisk/openvpnforeign.lock" ]] && rm /tmp/ramdisk/openvpnforeign.lock
+	[[ -f "/var/ramdisk/openvpnforeign.lock" ]] && rm /tmp/ramdisk/openvpnforeign.lock
 fi
 
 exit 0
